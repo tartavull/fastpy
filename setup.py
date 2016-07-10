@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import setup
+from pip.req import parse_requirements
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -9,8 +10,8 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = [
-]
+install_reqs = parse_requirements('requirements.txt', session=False)
+requirements = [str(ir.req) for ir in install_reqs]
 
 test_requirements = [
     # TODO: put package test requirements here
