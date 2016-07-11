@@ -1,3 +1,32 @@
+"""
+Now we set up another type system, the LLVM type system which
+map directly onto machine types for our platform.
+The only nonobvious thing going on here is that our NumPy arrays
+will be passed around as a structure object that holds metadata 
+from the originally NumPy ndarray. 
+The data pointer is simply the pointer to data buffer that 
+NumPy allocated for it's values. 
+
+In C we would write:
+struct ndarray_double {
+    data *double;
+    dims int;
+    shape *int;
+}
+
+Attributes:
+    bool_type (TYPE): Description
+    double_array (TYPE): Description
+    double_type (TYPE): Description
+    float_type (TYPE): Description
+    int32_array (TYPE): Description
+    int64_array (TYPE): Description
+    int_type (TYPE): Description
+    lltypes_map (TYPE): Description
+    pointer (TYPE): Description
+    void_ptr (TYPE): Description
+    void_type (TYPE): Description
+"""
 from collections import defaultdict
 
 import llvm.core as lc
@@ -42,18 +71,51 @@ def determined(ty):
     return len(ftv(ty)) == 0
 
 class LLVMEmitter(object):
+    """we create a LLVM builder upon initialization 
+    and then traverse through our core AST.
+    
+    Attributes:
+        argtys (TYPE): Argument types
+        arrays (TYPE): Array metadata: The metadata for all array arguments is automatically
+                       stack allocated in the entry block so that subsequent accesses just 
+                       have to look at the constant load'd values. 
+                       These are stored in the arrays dictionary which holds 
+                       all NumPy array arguments and their metadata.
+        block (TYPE): Description
+        builder (TYPE): LLVM Builder
+        exit_block (TYPE): Exit block
+        function (TYPE): LLVM Function
+        locals (dict): Local variables
+        module (TYPE): Description
+        retty (TYPE): Return type
+        spec_types (TYPE): Type specialization
+    """
     def __init__(self, module, spec_types, retty, argtys):
         self.module = module
-        self.function = None             # LLVM Function
-        self.builder = None              # LLVM Builder
-        self.locals = {}                 # Local variables
-        self.arrays = defaultdict(dict)  # Array metadata
-        self.exit_block = None           # Exit block
-        self.spec_types = spec_types     # Type specialization
-        self.retty = retty               # Return type
-        self.argtys = argtys             # Argument types
+        self.function = None            
+        self.builder = None             
+        self.locals = {}
+        self.arrays = defaultdict(dict) 
+        self.exit_block = None 
+        self.spec_types = spec_types
+        self.retty = retty
+        self.argtys = argtys 
 
     def start_function(self, name, rettype, argtypes):
+        """
+        Creates the initial basic block structure.
+        Shifts the instruction "cursor" to the first block
+        and then starts running through each of the statements
+        in the body of the function to add logic.
+        
+        Args:
+            name (TYPE): Description
+            rettype (TYPE): Description
+            argtypes (TYPE): Description
+        
+        Returns:
+            TYPE: Description
+        """
         func_type = lc.Type.function(rettype, argtypes, False)
         function = lc.Function.new(self.module, func_type, name)
         entry_block = function.append_basic_block("entry")
@@ -72,9 +134,26 @@ class LLVMEmitter(object):
             self.builder.ret_void()
 
     def add_block(self, name):
+        """Creates a new basic block.
+        
+        Args:
+            name (TYPE): Description
+        
+        Returns:
+            TYPE: Description
+        """
         return self.function.append_basic_block(name)
 
     def set_block(self, block):
+        """
+        Sets the active basic block that we are adding instructions to.
+        
+        Args:
+            block (TYPE): Description
+        
+        Returns:
+            TYPE: Description
+        """
         self.block = block
         self.builder.position_at_end(block)
 
@@ -85,6 +164,16 @@ class LLVMEmitter(object):
         self.builder.branch(next_block)
 
     def specialize(self, val):
+        """
+        Extracts the type of the subexpression from the AST
+        and maps our custom type into a LLVM type.
+        
+        Args:
+            val (TYPE): Description
+        
+        Returns:
+            TYPE: Description
+        """
         if isinstance(val.type, TVar):
             return to_lltype(self.spec_types[val.type.s])
         else:

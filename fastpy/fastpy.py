@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging 
-
 import sys
 import numpy as np
 from itertools import tee, izip
-
 
 import llvm.core as lc
 import llvm.passes as lp
 import llvm.ee as le
 
-
-from core_translator import PythonVisitor
+from core_translator import CoreTranslator
 from type_inference import TypeInfer, UnderDeteremined
 from type_system import TVar, TFun, int32, int64, double64, float32
 from pretty_printer import dump
@@ -31,11 +28,41 @@ eb = le.EngineBuilder.new(module)
 engine = eb.create(tm)
 
 def fast(fn):
-    transformer = PythonVisitor()
-    ast = transformer(fn)
-    (ty, mgu) = typeinfer(ast)
-    debug(dump(ast))
-    return specialize(ast, ty, mgu)
+    """
+    Decorator which maps the function through translator, does type inference,
+    and the creates a closure which when called will automatically specialize
+    the function to the given argument types and compile a new version if needed.
+
+    We will cache based on the arguments ( which entirely define the function )
+    and whenever a similar typed argument set is passed we just lookup 
+    the preJIT'd function and invoke it without recompiling.
+
+    Args:
+        fn (function): Function which we want to decorate
+    """
+    core_ast = CoreTranslator().translate(fn)
+    ty, mgu = typeinfer(core_ast)
+    debug(dump(core_ast))
+    return specialize(core_ast, ty, mgu)
+
+def typeinfer(core_ast):
+    """Infer types
+    
+    Args:
+        core_ast (ast): Untyped abstract syntax tree transfromed by the core translator
+    
+    Returns:
+        TYPE: Description
+    """
+    infer = TypeInfer()
+    ty = infer.visit(core_ast)
+    mgu = ConstrainSolver().solve(infer.constraints)
+    infer_ty = ConstrainSolver().apply(mgu, ty)
+    debug(infer_ty)
+    debug(mgu)
+    debug(infer.constraints)
+    return (infer_ty, mgu)
+
 
 def arg_pytype(arg):
     if isinstance(arg, np.ndarray):
@@ -79,15 +106,7 @@ def specialize(ast, infer_ty, mgu):
             raise UnderDeteremined()
     return _wrapper
 
-def typeinfer(ast):
-    infer = TypeInfer()
-    ty = infer.visit(ast)
-    mgu = ConstrainSolver().solve(infer.constraints)
-    infer_ty = ConstrainSolver().apply(mgu, ty)
-    debug(infer_ty)
-    debug(mgu)
-    debug(infer.constraints)
-    return (infer_ty, mgu)
+
 
 def codegen(ast, specializer, retty, argtys):
     cgen = LLVMEmitter(module, specializer, retty, argtys)

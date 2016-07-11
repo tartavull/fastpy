@@ -2,6 +2,29 @@ from collections import deque
 from type_system import TApp, TCon, TFun, TVar, ftv
 
 class ConstrainSolver(object):
+    """
+    We'll solve the system of equations using the very traditional 
+    unification solver via Robinson's algorithm.
+
+    The solver will recursively build up the most general unifier (mgu)
+    which is a substitution which when applied to the term yields the 
+    minimal singleton solution set.
+
+    In logic and computer science, unification is an algorithmic process of 
+    solving equations between symbolic expressions.
+
+    The first formal investigation of unification can be attributed to 
+    John Alan Robinson, who used first-order syntactical unification as
+    basic building block of his resolution procedure for first-order 
+    logic, a great step forward in automated reasoning technology, 
+    as it eliminated one source of combinatorial explosion:
+     searching for instantiation of terms. 
+
+    Today, automated reasoning is still the main application area of unification.
+    Syntactical first-order unification is used in logic programming and 
+    programming language type system implementation, 
+    especially in Hindley-Milner based type inference algorithms.
+    """
     def empty(self):
         return {}
     def apply(self, s, t):

@@ -2,19 +2,109 @@ import string
 
 from type_system import TVar, TFun, int32, int64
 
-def naming():
-    k = 0
-    while True:
-        for a in string.ascii_lowercase:
-            yield ("'"+a+str(k)) if (k > 0) else (a)
-        k = k+1
-
 class TypeInfer(object):
+    """
+    For type inference we wish to take our untyped core AST and overlay types 
+    deduced from two sources:
+      * Types intrinsic to the operations in use
+      * User input types
+
+    We will walk our AST generating a constraint set of equality relations
+    between types, which will give rise to a large constraint problem
+    we will solve when given a set of input types for arguments.
+
+    There are four possible outcomes:
+      * The types are correctly determined.
+      * The types are underdetermined.
+      * The types is polymorphic.
+      * The types are inconsistent.
+
+
+    Converts the example from core translator into, which in this case is polymorphic,
+    This is good for code reuse and implies we get a whole family of functions.
+
+    ('Fun',
+     {'args': [('Var',
+                {'id': "'a'",
+                 'type': TVar("$a")}),
+               ('Var',
+                {'id': "'b'",
+                 'type': TVar("$b")})],
+      'body': [('Return',
+                {'val': ('Prim',
+                         {'args': [('Var',
+                                    {'id': "'a'",
+                                     'type': TVar("$a")}),
+                                   ('Var',
+                                    {'id': "'b'",
+                                     'type':TVar("$b")})],
+                          'fn': "'add#'"})})],
+      'fname': "'add'"})
+
+
+        Another example:
+        def addup(n):
+            x = 1
+            for i in range(n):
+                n += 1 + x
+            return n
+
+        Represented as core AST:
+        ('Fun',
+         {'args': [('Var', {'id': "'n'", 'type': $a})],
+          'body': [('Assign',
+                    {'ref': "'x'", 'type': $b, 'val': ('LitInt', {'n': 1})}),
+                   ('Loop',
+                    {'begin': ('LitInt', {'n': 0}),
+                     'body': [('Assign',
+                               {'ref': "'n'",
+                                'type': $b,
+                                'val': ('Prim',
+                                        {'args': [('Var',
+                                                   {'id': "'n'",
+                                                    'type': $a}),
+                                                  ('Prim',
+                                                   {'args': [('LitInt',
+                                                              {'n': 1}),
+                                                             ('Var',
+                                                              {'id': "'x'",
+                                                               'type': $b})],
+                                                    'fn': "'add#'"})],
+                                         'fn': "'add#'"})})],
+                     'end': ('Var', {'id': "'n'", 'type': $a}),
+                     'var': ('Var', {'id': "'i'", 'type': Int32})}),
+                   ('Return', {'val': ('Var', {'id': "'n'", 'type': $b})})],
+          'fname': "'addup'"})
+    
+        Produces this constraints:
+        Int32 ~ Int32
+        $c ~ Int64
+        $a ~ Int32
+        $d ~ $b
+        $a ~ $b
+        $b ~ $a
+        $b ~ $retty
+
+
+
+    """
 
     def __init__(self):
         self.constraints = []
         self.env = {}
-        self.names = naming()
+        self.names = self.naming()
+
+    def naming(self):
+        """Generate names for variables
+        
+        Returns:
+            TYPE: Description
+        """
+        k = 0
+        while True:
+            for a in string.ascii_lowercase:
+                yield ("'"+a+str(k)) if (k > 0) else (a)
+            k = k+1
 
     def fresh(self):
         return TVar('$' + next(self.names))  # New meta type variable.

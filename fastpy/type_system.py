@@ -1,4 +1,9 @@
 class TVar(object):
+    """Type Variable
+    
+    Attributes:
+        s (TYPE): Description
+    """
     def __init__(self, s):
         self.s = s
 
@@ -15,6 +20,11 @@ class TVar(object):
         return self.s
 
 class TCon(object):
+    """Named Constructor
+    
+    Attributes:
+        s (TYPE): Description
+    """
     def __init__(self, s):
         self.s = s
 
@@ -31,6 +41,12 @@ class TCon(object):
         return self.s
 
 class TApp(object):
+    """Type Application
+    
+    Attributes:
+        a (TYPE): Description
+        b (TYPE): Description
+    """
     def __init__(self, a, b):
         self.a = a
         self.b = b
@@ -48,6 +64,12 @@ class TApp(object):
         return str(self.a) + " " + str(self.b)
 
 class TFun(object):
+    """Function type
+    
+    Attributes:
+        argtys (TYPE): Description
+        retty (TYPE): Description
+    """
     def __init__(self, argtys, retty):
         assert isinstance(argtys, list)
         self.argtys = argtys

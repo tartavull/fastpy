@@ -6,15 +6,62 @@ import inspect
 from core_language import Var, Prim, Return, Fun, primops, LitBool, LitFloat, LitInt, Assign, Loop
 from type_system import int32, int64
 
-class PythonVisitor(ast.NodeVisitor):
+class CoreTranslator(ast.NodeVisitor):
     """
-        Processes the tree of the python abstract syntax grammar
+    Processes the tree of the python abstract syntax grammar,
+    modifying it to convert in a new AST that can be later easly
+    convert into LLVM IR( intermediate representation language )
+
+    It recursively descends through the Python AST compressing it into our Core language. 
+    We are going to support basic loops, arithmetic with addition and multiplication, 
+    numeric literals, and array indexing.
+
+
+    Given a function like:
+    def add(a,b):
+        return a + b
+
+    Which is represent in Python's AST as:
+    ('Module',
+        {'body': [('FunctionDef',
+                {'args': ('arguments',
+                          {'args': [('Name',
+                                     {'ctx': ('Param', {}), 'id': "'a'"}),
+                                    ('Name',
+                                     {'ctx': ('Param', {}), 'id': "'b'"})],
+                           'defaults': [],
+                           'kwarg': None,
+                           'vararg': None}),
+                 'body': [('Return',
+                           {'value': ('BinOp',
+                                      {'left': ('Name',
+                                                {'ctx': ('Load', {}),
+                                                 'id': "'a'"}),
+                                       'op': ('Add', {}),
+                                       'right': ('Name',
+                                                 {'ctx': ('Load', {}),
+                                                  'id': "'b'"})})})],
+                 'decorator_list': [],
+                 'name': "'add'"})]})
+
+    To something that looks like this:
+    ('Fun',
+     {'args': [('Var', {'id': "'a'", 'type': None}),
+               ('Var', {'id': "'b'", 'type': None})],
+      'body': [('Return',
+                {'val': ('Prim',
+                         {'args': [('Var', {'id': "'a'", 'type': None}),
+                                   ('Var', {'id': "'b'", 'type': None})],
+                          'fn': "'add#'"})})],
+      'fname': "'add'"})
+
+    The type is going to be infered later on.
     """
 
     def __init__(self):
         pass
 
-    def __call__(self, source):
+    def translate(self, source):
         if isinstance(source, types.ModuleType):
             source = dedent(inspect.getsource(source))
         if isinstance(source, types.FunctionType):
