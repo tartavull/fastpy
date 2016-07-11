@@ -19,7 +19,7 @@ test_requirements = [
 
 setup(
     name='fastpy',
-    version='0.1.0',
+    version='0.1.1',
     description="LLVM JIT compiler as a function decorator",
     long_description=readme + '\n\n' + history,
     author="Ignacio Tartavull",
