@@ -1,6 +1,6 @@
 import string
 
-from type_system import TVar, TFun, int32, int64
+from type_system import TVar, TFun, int32, int64, double64
 
 class TypeInfer(object):
     """
@@ -130,12 +130,16 @@ class TypeInfer(object):
         return None
 
     def visit_LitInt(self, node):
-        tv = self.fresh()
+        #TODO choose correct integer size. and handle constrain between
+        #different integer types
+        tv = int64
         node.type = tv
         return tv
 
     def visit_LitFloat(self, node):
-        tv = self.fresh()
+        #TODO choose correct float size. and handle constrain between
+        #different float types
+        tv = double64
         node.type = tv
         return tv
 

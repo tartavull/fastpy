@@ -19,6 +19,9 @@ class TVar(object):
     def __str__(self):
         return self.s
 
+    def __repr__(self):
+        return "TVar('{}'')".format(self.__str__())
+
 class TCon(object):
     """Named Constructor
     
@@ -39,6 +42,8 @@ class TCon(object):
 
     def __str__(self):
         return self.s
+
+    __repr__ = __str__
 
 class TApp(object):
     """Type Application

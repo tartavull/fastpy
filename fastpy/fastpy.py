@@ -16,8 +16,9 @@ from constrain_solver import ConstrainSolver
 from llvm_codegen import determined, LLVMEmitter
 from type_mapping import mangler, wrap_module
 
-logging.basicConfig(level=logging.INFO)
-
+logging.basicConfig(level=logging.WARN)
+import ast
+import inspect
 
 module = lc.Module.new('fastpy.module')
 engine = None
@@ -40,7 +41,9 @@ def fast(fn):
     Args:
         fn (function): Function which we want to decorate
     """
+    # debug(dump(ast.parse(inspect.getsource(fn))))
     core_ast = CoreTranslator().translate(fn)
+    debug(dump(core_ast))
     ty, mgu = typeinfer(core_ast)
     debug(dump(core_ast))
     return specialize(core_ast, ty, mgu)
@@ -58,7 +61,7 @@ def typeinfer(core_ast):
     ty = infer.visit(core_ast)
     mgu = ConstrainSolver().solve(infer.constraints)
     infer_ty = ConstrainSolver().apply(mgu, ty)
-    debug(infer_ty)
+    debug('infered types:'+ str(infer_ty))
     debug(mgu)
     debug(infer.constraints)
     return (infer_ty, mgu)
@@ -90,7 +93,7 @@ def specialize(ast, infer_ty, mgu):
 
         retty = ConstrainSolver().apply(specializer, TVar("$retty"))
         argtys = [ConstrainSolver().apply(specializer, ty) for ty in types]
-        debug('Specialized Function:', TFun(argtys, retty))
+        debug('Specialized Function:' + str(TFun(argtys, retty)))
 
         if determined(retty) and all(map(determined, argtys)):
             key = mangler(ast.fname, argtys)

@@ -32,7 +32,7 @@ from collections import defaultdict
 import llvm.core as lc
 from llvm.core import Module, Builder, Function, Type, Constant
 
-from type_system import int32, int64, double64, float32, array_int32, array_int64, array_double64, ftv, is_array , TVar
+from type_system import int32, int64, double64, float32, array_int32, array_int64, array_double64, ftv, is_array , TVar, TCon
 from type_mapping import mangler
 
 pointer     = Type.pointer
@@ -176,6 +176,8 @@ class LLVMEmitter(object):
         """
         if isinstance(val.type, TVar):
             return to_lltype(self.spec_types[val.type.s])
+        elif isinstance(val.type, TCon):
+            return to_lltype(val.type)
         else:
             return val.type
 
